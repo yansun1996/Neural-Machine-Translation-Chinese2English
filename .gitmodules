@@ -1,0 +1,3 @@
+[submodule "RNN-NMT"]
+	path = RNN-NMT
+	url = https://github.com/VectorFist/RNN-NMT.git

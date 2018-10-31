@@ -1,6 +1,6 @@
 # LIGN167_Final_Project
 ## 1. Project Topic
-    1. 
+    1. Neural Machine Translation 
 ## 2. Rules for master branch:
     1. Do not push to master branch directly
     2. Merge master branch to your branch before merging
