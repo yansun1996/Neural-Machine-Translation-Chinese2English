@@ -15,44 +15,57 @@ from torch.nn.utils import clip_grad_norm_
 import masked_cross_entropy
 
 
-src, tgt, pairs = prepareData('eng', 'fra', True)
-src.trim()
-tgt.trim()
+def nmt_training(src, tgt, pairs):
+    encoder_test = Encoder(src.num, cfg.embed_size, cfg.hidden_size, cfg.n_layers, dropout=0.5)
+    decoder_test = Decoder(cfg.embed_size, cfg.hidden_size, tgt.num, cfg.n_layers, dropout=0.5)
 
-batch_size = 2
-hidden_size = 8
-embed_size = 8
-n_layers = 3
-grad_clip = 10
+    net = Seq2Seq(encoder_test,decoder_test).cuda()
+    load_checkpoint(net, cfg)
 
-encoder_test = Encoder(src.num, embed_size, hidden_size, n_layers, dropout=0.5)
-decoder_test = Decoder(embed_size, hidden_size, tgt.num, n_layers, dropout=0.5)
+    opt = optim.Adam(net.parameters(),lr=0.01)
+    # print(net)
 
-net = Seq2Seq(encoder_test,decoder_test).cuda()
-load_checkpoint(net, cfg)
+    for step in range(1, cfg.iteration):
+        total_loss = 0
+        input_batches, input_lengths, \
+        target_batches, target_lengths = random_batch(src, tgt, pairs, cfg.batch_size)
+        opt.zero_grad()
+        output = net(input_batches, input_lengths, target_batches, target_lengths)
 
-opt = optim.Adam(net.parameters(),lr=0.01)
-print(net)
+        # For Debug
+        # print('target lengths', target_lengths)
 
-for step in range(1, cfg.iteration):
-    total_loss = 0
-    input_batches, input_lengths, \
-    target_batches, target_lengths = random_batch(src, tgt, pairs, batch_size)
-    opt.zero_grad()
-    output = net(input_batches, input_lengths, target_batches, target_lengths)
+        loss = masked_cross_entropy.compute_loss(
+            output.transpose(0, 1).contiguous(),
+            target_batches.transpose(0, 1).contiguous(),
+            target_lengths
+        )
 
-    # For Debug
-    # print('target lengths', target_lengths)
+        clip_grad_norm_(net.parameters(), cfg.grad_clip)
+        loss.backward()
+        opt.step()
 
-    loss = masked_cross_entropy.compute_loss(
-        output.transpose(0, 1).contiguous(),
-        target_batches.transpose(0, 1).contiguous(),
-        target_lengths
-    )
-    print('loss = ', loss.item())
 
-    clip_grad_norm_(net.parameters(), grad_clip)
-    loss.backward()
-    opt.step()
+        if step % cfg.save_iteration == 0:
+            print('loss = ', loss.item())
+            save_checkpoint(net, cfg, step)
+            # print(output)
+            # TODO apply decoder to the output
 
-    save_checkpoint(net, cfg, step)
+def nmt_testing(sec, tgt, pairs):
+    # TODO finish testing
+    pass
+
+if __name__ == '__main__':
+    if not os.path.exists(cfg.checkpoints_path):
+        os.mkdir(cfg.checkpoints_path)
+
+    src, tgt, pairs = prepareData('eng', 'fra', True)
+    src.trim()
+    tgt.trim()
+
+    if cfg.is_training:
+        nmt_training(src, tgt, pairs)
+    else:
+        nmt_testing(src, tgt, pairs)
+
