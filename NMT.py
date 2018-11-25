@@ -3,6 +3,7 @@
 # author:Darksoul
 # datetime:11/24/2018 22:02
 # software: PyCharm
+import os
 
 from utils import *
 from network import *
@@ -12,6 +13,7 @@ from torch.nn.utils import clip_grad_norm_
 
 # import loss func
 import masked_cross_entropy
+
 
 src, tgt, pairs = prepareData('eng', 'fra', True)
 src.trim()
@@ -27,10 +29,12 @@ encoder_test = Encoder(src.num, embed_size, hidden_size, n_layers, dropout=0.5)
 decoder_test = Decoder(embed_size, hidden_size, tgt.num, n_layers, dropout=0.5)
 
 net = Seq2Seq(encoder_test,decoder_test).cuda()
+load_checkpoint(net, cfg)
+
 opt = optim.Adam(net.parameters(),lr=0.01)
 print(net)
 
-for step in range(1, 100):
+for step in range(1, cfg.iteration):
     total_loss = 0
     input_batches, input_lengths, \
     target_batches, target_lengths = random_batch(src, tgt, pairs, batch_size)
@@ -50,3 +54,5 @@ for step in range(1, 100):
     clip_grad_norm_(net.parameters(), grad_clip)
     loss.backward()
     opt.step()
+
+    save_checkpoint(net, cfg, step)

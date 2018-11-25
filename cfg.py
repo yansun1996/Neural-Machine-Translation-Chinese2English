@@ -21,3 +21,9 @@ class configuration:
                                 "we are", "we re ",
                                 "they are", "they re "
                             )
+
+        self.checkpoints_path = './checkpoints'
+        self.iteration = 20
+        self.save_iteration = 10
+        self.load_checkpoint = 10
+
