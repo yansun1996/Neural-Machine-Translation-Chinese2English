@@ -11,6 +11,7 @@ import torch.nn.functional as F
 from torch.autograd import Variable
 import math
 import random
+import os
 
 
 class Encoder(nn.Module):
@@ -139,3 +140,25 @@ class Seq2Seq(nn.Module):
             top1 = output.data.max(1)[1]
             output = Variable(tgt.data[t] if is_teacher else top1).cuda()
         return outputs
+
+
+def load_checkpoint(net, cfg):
+    # load from required checkpoint
+    if cfg.load_checkpoint > 0:
+        net.load_state_dict(
+            torch.load(os.path.join(cfg.checkpoints_path, 'checkpoint_step_' + str(cfg.load_checkpoint) + '.pth.tar')))
+        print('load checkpoint ' + str(cfg.load_checkpoint))
+    elif cfg.load_checkpoint == 0:
+        print('train from scratch')
+    else:
+        raise ValueError('load_checkpoint should be larger or equals to 0')
+
+    return net
+
+
+def save_checkpoint(net, cfg, step):
+    # save model
+    if step % cfg.save_iteration == 0:
+        print('checkpoint '+str(cfg.load_checkpoint + step)+' saved')
+        torch.save(net.state_dict(), os.path.join(cfg.checkpoints_path,
+                                                  'checkpoint_step_' + str(cfg.load_checkpoint + step) + '.pth.tar'))
