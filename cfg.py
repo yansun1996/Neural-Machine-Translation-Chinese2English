@@ -6,6 +6,15 @@
 
 class configuration:
     def __init__(self):
+
+        self.is_training = True
+
+        self.batch_size = 2
+        self.hidden_size = 8
+        self.embed_size = 8
+        self.n_layers = 3
+        self.grad_clip = 10
+
         self.PAD_idx = 0
         self.SOS_idx = 0
         self.EOS_idx = 2
@@ -21,3 +30,9 @@ class configuration:
                                 "we are", "we re ",
                                 "they are", "they re "
                             )
+
+        self.checkpoints_path = './checkpoints'
+        self.iteration = 100
+        self.save_iteration = 20
+        self.load_checkpoint = 0
+
