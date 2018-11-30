@@ -3,9 +3,8 @@
 # author:Darksoul
 # datetime:11/24/2018 22:02
 # software: PyCharm
-import os
 
-from utils import *
+import os
 from network import *
 
 from torch import optim
