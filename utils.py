@@ -33,10 +33,10 @@ class Preprocessor:
         initialize vocab and counter
         '''
         self.name = name
-        self.w2idx = {}
+        self.w2idx = {"<sos>": 0, "<eos>": 1, "<unk>": 2, "<pad>": 3}
         self.counter = {}
-        self.idx2w = {0: "<sos>", 1: "<eos>", 2: "<unk>"}
-        self.num = 2
+        self.idx2w = {0: "<sos>", 1: "<eos>", 2: "<unk>", 3: "<pad>"}
+        self.num = 4
 
     def SentenceAdder(self, sentence):
         '''
@@ -57,22 +57,21 @@ class Preprocessor:
             self.idx2w[self.num] = word
             self.num += 1
 
-    def trim(self, min_count=2, print_message=False):
+    def trim(self, min_count=5):
         '''
         Trim to remove non-frequent word
         '''
         keep = []
         for k, v in self.counter.items():
             if v >= min_count: keep.append(k)
-        if print_message:
-            print(self.name + ':')
-            print('Total words', len(self.w2idx))
-            print('After Trimming', len(keep))
-            print('Keep Ratio %', len(keep) / len(self.w2idx))
-        self.w2idx = {}
+        print(self.name + ':')
+        print('Total words', len(self.w2idx))
+        print('After Trimming', len(keep))
+        print('Keep Ratio %', 100 * len(keep) / len(self.w2idx))
+        self.w2idx = {"<sos>": 0, "<eos>": 1, "<unk>": 2, "<pad>": 3}
         self.counter = {}
-        self.idx2w = {0: "<sos>", 1: "<eos>", 2: "<unk>"}
-        self.num = 2
+        self.idx2w = {0: "<sos>", 1: "<eos>", 2: "<unk>", 3: "<pad>"}
+        self.num = 4
         for w in keep:
             self.WordAdder(w)
 
@@ -84,7 +83,6 @@ def Uni2Ascii(s):
     return ''.join(c for c in unicodedata.normalize('NFD', s)
                     if unicodedata.category(c) != 'Mn')
 
-
 def StrCleaner(s):
     '''
     trim, delete non-letter and lowercase string
@@ -94,16 +92,16 @@ def StrCleaner(s):
     s = re.sub(r"[^a-zA-Z.!?]+", r" ", s)
     return s
 
-
-def DataReader(lang1, lang2, reverse=False):
+def DataReader(path, lang1, lang2, reverse=False):
     print("Reading lines...")
 
     # Read the file and split into lines
-    lines = open('data/%s-%s.txt' % (lang1, lang2), encoding='utf-8').\
+    lines = open(path, encoding='utf-8').\
         read().strip().split('\n')
 
     # Split every line into pairs and normalize
-    pairs = [[StrCleaner(s) for s in l.split('\t')] for l in lines]
+    #pairs = [[StrCleaner(s) for s in l.split('<------>')] for l in lines]
+    pairs = [[s.lower() for s in l.split('<------>')] for l in lines]
 
     # Reverse pairs, make Lang instances
     if reverse:
@@ -118,25 +116,18 @@ def DataReader(lang1, lang2, reverse=False):
 
 
 def filterPair(p):
-    eng_prefixes = (
-        "i am ", "i m ",
-        "he is", "he s ",
-        "she is", "she s",
-        "you are", "you re ",
-        "we are", "we re ",
-        "they are", "they re "
-    )
+    '''
+    Filter to get expected pairs with specific length
+    '''
     return MIN_LENGTH <= len(p[0].split(' ')) <= MAX_LENGTH and \
-        MIN_LENGTH <= len(p[1].split(' ')) < MAX_LENGTH and \
-        p[1].startswith(eng_prefixes)
-
+        MIN_LENGTH <= len(p[1].split(' ')) < MAX_LENGTH
 
 def filterPairs(pairs):
     return [pair for pair in pairs if filterPair(pair)]
 
 
-def prepareData(lang1, lang2, reverse=False):
-    input_lang, output_lang, pairs = DataReader(lang1, lang2, reverse)
+def prepareData(path, lang1, lang2, reverse=True):
+    input_lang, output_lang, pairs = DataReader(path, lang1, lang2, reverse)
     print("Read %s sentence pairs" % len(pairs))
     pairs = filterPairs(pairs)
     print("Trimmed to %s sentence pairs" % len(pairs))
@@ -147,7 +138,6 @@ def prepareData(lang1, lang2, reverse=False):
     print("Counted words:")
     print(input_lang.name, input_lang.num)
     print(output_lang.name, output_lang.num)
-
     return input_lang, output_lang, pairs
 
 
@@ -156,7 +146,7 @@ def sentence2idx(preprocessor, sentence):
     Read sentence and translate into word index plus eos
     '''
     return [SOS_idx] + [preprocessor.w2idx[w] if w in preprocessor.w2idx \
-                            else UNK_idx for w in sentence.split(' ')] + [EOS_idx]
+            else UNK_idx for w in sentence.split(' ')] + [EOS_idx]
 
 
 def pad(seq, max_len):
@@ -165,6 +155,7 @@ def pad(seq, max_len):
     '''
     seq += [PAD_idx for i in range(max_len - len(seq))]
     return seq
+
 
 
 def random_batch(src, tgt, pairs, batch_size=5):
@@ -192,15 +183,15 @@ def random_batch(src, tgt, pairs, batch_size=5):
     target_padded = [pad(s, target_max) for s in target]
 
     # Create Variable
-    input_vars = Variable(torch.LongTensor(input_padded)).transpose(0, 1)
-    input_lens = Variable(torch.LongTensor(input_lens))
-    target_vars = Variable(torch.LongTensor(target_padded)).transpose(0, 1)
-    target_lens = Variable(torch.LongTensor(target_lens))
-
     if USE_CUDA:
-        input_vars = input_vars.cuda()
-        input_lens = input_lens.cuda()
-        target_vars = target_vars.cuda()
-        target_lens = target_lens.cuda()
+        input_vars = Variable(torch.LongTensor(input_padded).cuda()).transpose(0, 1)
+        input_lens = Variable(torch.LongTensor(input_lens).cuda())
+        target_vars = Variable(torch.LongTensor(target_padded).cuda()).transpose(0, 1)
+        target_lens = Variable(torch.LongTensor(target_lens).cuda())
+    else:
+        input_vars = Variable(torch.LongTensor(input_padded)).transpose(0, 1)
+        input_lens = Variable(torch.LongTensor(input_lens))
+        target_vars = Variable(torch.LongTensor(target_padded)).transpose(0, 1)
+        target_lens = Variable(torch.LongTensor(target_lens))
 
     return input_vars, input_lens, target_vars, target_lens

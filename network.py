@@ -5,10 +5,9 @@
 # software: PyCharm
 
 # import pytorch
-import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from torch.autograd import Variable
+from utils import *
 import math
 import random
 import os
@@ -46,12 +45,11 @@ class Attention(nn.Module):
     '''
     Define attention mechanism
     '''
-
     def __init__(self, dim_hidden):
         super(Attention, self).__init__()
         self.dim_hidden = dim_hidden
         # 2*dim_hidden is needed since bi-direction is used
-        self.attn = nn.Linear(2 * self.dim_hidden, dim_hidden)
+        self.attn = nn.Linear(2*self.dim_hidden, dim_hidden)
         self.v = nn.Parameter(torch.rand(dim_hidden))
         stdv = 1. / math.sqrt(self.v.size(0))
         self.v.data.uniform_(-stdv, stdv)
@@ -64,7 +62,7 @@ class Attention(nn.Module):
         return F.relu(scores).unsqueeze(1)
 
     def score(self, hidden, encoder_outputs):
-        e = F.softmax(self.attn(torch.cat([hidden, encoder_outputs], 2)), dim=1)
+        e = F.softmax(self.attn(torch.cat([hidden, encoder_outputs], 2)),dim=1)
         e = e.transpose(1, 2)
         v = self.v.repeat(encoder_outputs.size(0), 1).unsqueeze(1)
         e = torch.bmm(v, e)
@@ -75,7 +73,6 @@ class Decoder(nn.Module):
     '''
     Define decoder with attention
     '''
-
     def __init__(self, dim_embed, dim_hidden, dim_output, num_layers, dropout):
         super(Decoder, self).__init__()
         self.dim_embed = dim_embed
@@ -87,8 +84,8 @@ class Decoder(nn.Module):
         self.dropout = nn.Dropout(dropout, inplace=True)
         self.attention = Attention(dim_hidden)
         self.cell = nn.GRU(dim_hidden + dim_embed, dim_hidden,
-                           num_layers, dropout=dropout)
-        self.out = nn.Linear(2 * dim_hidden, dim_output)
+                          num_layers, dropout=dropout)
+        self.out = nn.Linear(2*dim_hidden, dim_output)
 
     def forward(self, inputs, last_hidden, encoder_outputs):
         # Get the embedding of the current input word (last output word)
@@ -100,16 +97,16 @@ class Decoder(nn.Module):
         context = context.transpose(0, 1)  # (1,B,N)
         # Combine embedded input word and attended context, run through RNN
         rnn_input = torch.cat([embedded, context], 2)
-        # print(embedded.size())
-        # print(context.size())
-        # print(rnn_input.size())
-        # print(last_hidden.size())
+        #print(embedded.size())
+        #print(context.size())
+        #print(rnn_input.size())
+        #print(last_hidden.size())
         output, hidden = self.cell(rnn_input, last_hidden)
         output = output.squeeze(0)  # (1,B,N) -> (B,N)
         context = context.squeeze(0)
         # For Debug
-        # print(output.size())
-        # print(context.size())
+        #print(output.size())
+        #print(context.size())
         torch.cat([output, context], 1)
         output = self.out(torch.cat([output, context], 1))
         output = F.log_softmax(output, dim=1)
@@ -126,10 +123,13 @@ class Seq2Seq(nn.Module):
         batch_size = src.size(1)
         max_len = tgt.size(0)
         vocab_size = self.decoder.dim_output
-        outputs = Variable(torch.zeros(max_len, batch_size, vocab_size)).cuda()
-
+        outputs = Variable(torch.zeros(max_len, batch_size, vocab_size).cuda())
+        # for debug
+        # print(src.size())
+        # print(src_len.size())
         encoder_output, hidden = self.encoder(src, src_len)
         hidden = hidden[:self.decoder.num_layers]
+        # Put <sos> at first position
         output = Variable(tgt.data[0, :])
         for t in range(1, max_len):
             output, hidden, attn_weights = self.decoder(
@@ -138,8 +138,28 @@ class Seq2Seq(nn.Module):
             # Randomly choose whether to use teacher force or not
             is_teacher = random.random() < teacher_forcing_ratio
             top1 = output.data.max(1)[1]
-            output = Variable(tgt.data[t] if is_teacher else top1).cuda()
+            output = Variable(tgt.data[t].cuda() if is_teacher else top1.cuda())
         return outputs
+
+    def inference(self, src, src_len, max_len=cfg.MAX_LENGTH):
+        pred_idx = []
+        batch_size = src.size(1)
+        vocab_size = self.decoder.dim_output
+        outputs = Variable(torch.zeros(max_len, batch_size, vocab_size)).cuda()
+
+        encoder_output, hidden = self.encoder(src, src_len)
+        hidden = hidden[:self.decoder.num_layers]
+        # Put <sos> at first position
+        output = Variable(src.data[0, :])
+        for t in range(1, max_len):
+            output, hidden, attn_weights = self.decoder(
+                output, hidden, encoder_output)
+            outputs[t] = output
+            top1 = output.data.max(1)[1]
+            pred_idx.append(top1.item())
+            output = Variable(top1).cuda()
+            if top1 == EOS_idx: break
+        return outputs, pred_idx
 
 
 def load_checkpoint(net, cfg):
