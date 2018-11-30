@@ -48,8 +48,11 @@ def nmt_training(src, tgt, pairs):
         if step % cfg.save_iteration == 0:
             print('loss = ', loss.item())
             save_checkpoint(net, cfg, step)
-            # print(output)
-            # TODO apply decoder to the output
+
+            _, pred = net.inference(input_batches[:, 1].reshape(input_lengths[0].item(), 1),
+                                    input_lengths[0].reshape(1))
+            print(' '.join([tgt.idx2w[t] for t in pred]))
+
 
 def nmt_testing(sec, tgt, pairs):
     # TODO finish testing
@@ -59,7 +62,7 @@ if __name__ == '__main__':
     if not os.path.exists(cfg.checkpoints_path):
         os.mkdir(cfg.checkpoints_path)
 
-    src, tgt, pairs = prepareData('eng', 'fra', True)
+    src, tgt, pairs = prepareData('data/train.txt', 'english', 'chinese')
     src.trim()
     tgt.trim()
 
