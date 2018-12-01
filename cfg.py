@@ -13,7 +13,7 @@ class configuration:
         self.batch_size = 128
         self.hidden_size = 512
         self.embed_size = 256
-        self.lr = 0.0001
+        self.lr = 0.001
         self.n_layers_encoder = 3
         self.n_layers_decoder = 3
         self.grad_clip = 10
@@ -21,7 +21,9 @@ class configuration:
         self.dropout = 0.2
         self.iteration = 100000
         self.save_iteration = 200
+
         self.load_checkpoint = 0
+        # self.load_checkpoint = '1_140'
 
         self.SOS_idx = 0
         self.EOS_idx = 1
