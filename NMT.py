@@ -56,12 +56,11 @@ def nmt_training(src, tgt, pairs):
             if (batch_index + 1) % cfg.save_iteration == 0:
                 print("Epoch: {}, Batch Num: {}, Loss: {}".format(str(step), batch_index+1, tmp_loss/cfg.save_iteration))
                 tmp_loss = 0
-                save_checkpoint(net, cfg, step)
+                save_checkpoint(net, cfg, step, batch_index+1)
 
                 _, pred = net.inference(input_batches[:, 1].reshape(input_lengths[0].item(), 1),
                                         input_lengths[0].reshape(1))
 
-                print(' '.join([src.idx2w[t] for t in pred]))
                 print(' '.join([tgt.idx2w[t] for t in pred]))
 
             clip_grad_norm_(net.parameters(), cfg.grad_clip)

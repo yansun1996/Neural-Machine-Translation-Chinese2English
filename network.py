@@ -176,8 +176,8 @@ def load_checkpoint(net, cfg):
     return net
 
 
-def save_checkpoint(net, cfg, step):
+def save_checkpoint(net, cfg, step, batch_index):
     # save model
-    print('checkpoint '+str(cfg.load_checkpoint + step)+' saved')
+    print('checkpoint '+str(cfg.load_checkpoint + step)+'_'+str(batch_index)+' saved')
     torch.save(net.state_dict(), os.path.join(cfg.checkpoints_path,
-                                              'checkpoint_step_' + str(cfg.load_checkpoint + step) + '.pth.tar'))
+                                              'checkpoint_step_' + str(cfg.load_checkpoint + step)+'_'+str(batch_index) + '.pth.tar'))
