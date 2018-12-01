@@ -26,6 +26,12 @@ def nmt_training(src, tgt, pairs):
     opt = optim.Adam(net.parameters(), cfg.lr)
     # print(net)
 
+    if isinstance(cfg.load_checkpoint, str):
+        ckt_step = int(cfg.load_checkpoint.split('_')[0])
+        ckt_idx = int(cfg.load_checkpoint.split('_')[1])
+    else:
+        ckt_step = 0
+        ckt_idx = 0
     for step in range(1, cfg.iteration):
         total_loss = 0
         tmp_loss = 0
@@ -53,19 +59,21 @@ def nmt_training(src, tgt, pairs):
 
             tmp_loss += loss.item()
 
-            if (batch_index + 1) % cfg.save_iteration == 0:
-                print("Epoch: {}, Batch Num: {}, Loss: {}".format(str(step), batch_index+1, tmp_loss/cfg.save_iteration))
+            if (batch_index + 1 + ckt_idx) % cfg.save_iteration == 0:
+                print("Epoch: {}, Batch Num: {}, Loss: {}".format(str(ckt_step), batch_index+1+ckt_idx, tmp_loss/cfg.save_iteration))
                 tmp_loss = 0
-                save_checkpoint(net, cfg, step, batch_index+1)
+                save_checkpoint(net, cfg, str(ckt_step), batch_index+1+ckt_idx)
 
                 _, pred = net.inference(input_batches[:, 1].reshape(input_lengths[0].item(), 1),
                                         input_lengths[0].reshape(1))
 
                 print(' '.join([tgt.idx2w[t] for t in pred]))
 
+
             clip_grad_norm_(net.parameters(), cfg.grad_clip)
             loss.backward()
             opt.step()
+
         print("Epoch {} finished".format(str(step)))
         random.shuffle(pairs)
 
