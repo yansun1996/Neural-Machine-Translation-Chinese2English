@@ -10,9 +10,9 @@ class configuration:
         self.is_training = True
         self.USE_CUDA = True
 
-        self.batch_size = 32
-        self.hidden_size = 32
-        self.embed_size = 32
+        self.batch_size = 128
+        self.hidden_size = 512
+        self.embed_size = 256
         self.lr = 0.0001
         self.n_layers_encoder = 3
         self.n_layers_decoder = 3
@@ -20,7 +20,7 @@ class configuration:
         self.loss_type = 'mask'
         self.dropout = 0.2
         self.iteration = 100000
-        self.save_iteration = 50
+        self.save_iteration = 500
         self.load_checkpoint = 0
 
         self.PAD_idx = 0
@@ -33,4 +33,5 @@ class configuration:
         self.checkpoints_path = './checkpoints_small_data'
 
         self.data_path = 'data/small_set/train.txt'
+
 
