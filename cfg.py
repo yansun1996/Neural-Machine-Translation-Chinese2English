@@ -22,8 +22,8 @@ class configuration:
         self.iteration = 100000
         self.save_iteration = 200
 
-        self.load_checkpoint = 0
-        # self.load_checkpoint = '1_140'
+        # self.load_checkpoint = 0
+        self.load_checkpoint = '1_140'
 
         self.SOS_idx = 0
         self.EOS_idx = 1

@@ -60,9 +60,9 @@ def nmt_training(src, tgt, pairs):
             tmp_loss += loss.item()
 
             if (batch_index + 1 + ckt_idx) % cfg.save_iteration == 0:
-                print("Epoch: {}, Batch Num: {}, Loss: {}".format(str(ckt_step), batch_index+1+ckt_idx, tmp_loss/cfg.save_iteration))
+                print("Epoch: {}, Batch Num: {}, Loss: {}".format(str(max(step,ckt_step)), batch_index+1+ckt_idx, tmp_loss/cfg.save_iteration))
                 tmp_loss = 0
-                save_checkpoint(net, cfg, str(ckt_step), batch_index+1+ckt_idx)
+                save_checkpoint(net, cfg, str(max(step,ckt_step)), batch_index+1+ckt_idx)
 
                 _, pred = net.inference(input_batches[:, 1].reshape(input_lengths[0].item(), 1),
                                         input_lengths[0].reshape(1))
