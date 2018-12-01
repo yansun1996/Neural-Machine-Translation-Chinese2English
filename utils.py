@@ -158,17 +158,22 @@ def pad(seq, max_len):
 
 
 
-def random_batch(src, tgt, pairs, batch_size=5):
+def random_batch(src, tgt, pairs, batch_size, batch_index):
     '''
     Randomly generate batch data
     '''
     inputs, target = [], []
 
     # Choose batch randomly
-    for _ in range(batch_size):
-        pair = random.choice(pairs)
-        inputs.append(sentence2idx(src, pair[0]))
-        target.append(sentence2idx(tgt, pair[1]))
+    # for _ in range(batch_size):
+    #     pair = random.choice(pairs)
+    #     inputs.append(sentence2idx(src, pair[0]))
+    #     target.append(sentence2idx(tgt, pair[1]))
+
+    # Choose batch
+    for s in pairs[batch_index*batch_size:(batch_index+1)*batch_size]:
+        inputs.append(sentence2idx(src, s[0]))
+        target.append(sentence2idx(tgt, s[1]))
 
     # Sort by length
     seq_pairs = sorted(zip(inputs, target), key=lambda p: len(p[0]), reverse=True)

@@ -9,9 +9,10 @@ class configuration:
 
         self.is_training = True
 
-        self.batch_size = 2
-        self.hidden_size = 8
-        self.embed_size = 8
+        self.batch_size = 128
+        self.hidden_size = 512
+        self.embed_size = 256
+        self.lr = 0.0001
         self.n_layers = 3
         self.grad_clip = 10
 
@@ -20,8 +21,8 @@ class configuration:
         self.EOS_idx = 2
         self.UNK_idx = 3
         self.USE_CUDA = True
-        self.MIN_LENGTH = 5
-        self.MAX_LENGTH = 10
+        self.MIN_LENGTH = 10
+        self.MAX_LENGTH = 50
         self.eng_prefixes = (
                                 "i am ", "i m ",
                                 "he is", "he s ",
@@ -31,8 +32,9 @@ class configuration:
                                 "they are", "they re "
                             )
 
-        self.checkpoints_path = './checkpoints'
-        self.iteration = 100
-        self.save_iteration = 20
+        self.checkpoints_path = './checkpoints_small_data'
+        self.iteration = 100000
+        self.save_iteration = 500
         self.load_checkpoint = 0
+        self.data_path = 'data/small_set/train.txt'
 
