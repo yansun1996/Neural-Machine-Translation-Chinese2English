@@ -17,8 +17,8 @@ import masked_cross_entropy
 def nmt_training(src, tgt, pairs):
     num_batch = len(pairs) // cfg.batch_size
 
-    encoder_test = Encoder(src.num, cfg.embed_size, cfg.hidden_size, cfg.n_layers, dropout=0.5)
-    decoder_test = Decoder(cfg.embed_size, cfg.hidden_size, tgt.num, cfg.n_layers, dropout=0.5)
+    encoder_test = Encoder(src.num, cfg.embed_size, cfg.hidden_size, cfg.n_layers_encoder, dropout=cfg.dropout)
+    decoder_test = Decoder(cfg.embed_size, cfg.hidden_size, tgt.num, cfg.n_layers_decoder, dropout=cfg.dropout)
 
     net = Seq2Seq(encoder_test,decoder_test).cuda()
     load_checkpoint(net, cfg)
@@ -40,15 +40,16 @@ def nmt_training(src, tgt, pairs):
             # print('target lengths', target_lengths)
 
             # mask loss
-            loss = masked_cross_entropy.compute_loss(
-                output.transpose(0, 1).contiguous(),
-                target_batches.transpose(0, 1).contiguous(),
-                target_lengths
-            )
-            # nll_loss
-            # loss = F.nll_loss(output[1:].view(-1, tgt.num),
-            #                   target_batches[1:].contiguous().view(-1),
-            #                   ignore_index=cfg.PAD_idx)
+            if cfg.loss_type == 'mask':
+                loss = masked_cross_entropy.compute_loss(
+                    output.transpose(0, 1).contiguous(),
+                    target_batches.transpose(0, 1).contiguous(),
+                    target_lengths
+                )
+            else:
+                loss = F.nll_loss(output[1:].view(-1, tgt.num),
+                                  target_batches[1:].contiguous().view(-1),
+                                  ignore_index=cfg.PAD_idx)
 
             tmp_loss += loss.item()
 
