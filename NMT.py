@@ -21,19 +21,13 @@ def nmt_training(src, tgt, pairs):
     decoder_test = Decoder(cfg.embed_size, cfg.hidden_size, tgt.num, cfg.n_layers_decoder, dropout=cfg.dropout)
 
     net = Seq2Seq(encoder_test,decoder_test).cuda()
-    load_checkpoint(net, cfg)
+    net = load_checkpoint(net, cfg)
 
     opt = optim.Adam(net.parameters(), cfg.lr)
-    # print(net)
 
-    if isinstance(cfg.load_checkpoint, str):
-        ckt_step = int(cfg.load_checkpoint.split('_')[0])
-        ckt_idx = int(cfg.load_checkpoint.split('_')[1])
-    else:
-        ckt_step = 0
-        ckt_idx = 0
-    for step in range(1, cfg.iteration):
-        total_loss = 0
+    total_loss = []
+
+    for step in range(1, cfg.iteration-cfg.load_checkpoint):
         tmp_loss = 0
 
         for batch_index in range(num_batch):
@@ -41,9 +35,6 @@ def nmt_training(src, tgt, pairs):
             target_batches, target_lengths = random_batch(src, tgt, pairs, cfg.batch_size, batch_index)
             opt.zero_grad()
             output = net(input_batches, input_lengths, target_batches, target_lengths)
-
-            # For Debug
-            # print('target lengths', target_lengths)
 
             # mask loss
             if cfg.loss_type == 'mask':
@@ -59,22 +50,31 @@ def nmt_training(src, tgt, pairs):
 
             tmp_loss += loss.item()
 
-            if (batch_index + 1 + ckt_idx) % cfg.save_iteration == 0:
-                print("Epoch: {}, Batch Num: {}, Loss: {}".format(str(max(step,ckt_step)), batch_index+1+ckt_idx, tmp_loss/cfg.save_iteration))
-                tmp_loss = 0
-                save_checkpoint(net, cfg, str(max(step,ckt_step)), batch_index+1+ckt_idx)
-
-                _, pred = net.inference(input_batches[:, 1].reshape(input_lengths[0].item(), 1),
-                                        input_lengths[0].reshape(1))
-
-                print(' '.join([tgt.idx2w[t] for t in pred]))
-
+            total_loss.append(loss.item())
 
             clip_grad_norm_(net.parameters(), cfg.grad_clip)
             loss.backward()
             opt.step()
 
-        print("Epoch {} finished".format(str(step)))
+        if (step + cfg.load_checkpoint) % cfg.save_iteration == 0:
+
+            with open('./loss_log.txt', 'w') as outfile:
+                for item in total_loss:
+                    outfile.write("%s\n" % item)
+
+            print("Epoch: {}, Loss: {}".format(step + cfg.load_checkpoint, tmp_loss/num_batch))
+            save_checkpoint(net, cfg, step + cfg.load_checkpoint)
+
+            _, pred = net.inference(input_batches[:, 1].reshape(input_lengths[0].item(), 1),
+                                    input_lengths[0].reshape(1))
+
+            try:
+                print(' '.join([tgt.idx2w[t] for t in pred]))
+                print(' '.join([src.idx2w[t] for t in pred]))
+            except Exception as e:
+                print(e)
+
+        # print("Epoch {} finished".format(str(step)))
         random.shuffle(pairs)
 
 
