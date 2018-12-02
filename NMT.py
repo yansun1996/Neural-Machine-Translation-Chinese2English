@@ -69,8 +69,14 @@ def nmt_training(src, tgt, pairs):
                                     input_lengths[0].reshape(1))
 
             try:
-                print(' '.join([tgt.idx2w[t] for t in pred]))
-                print(' '.join([src.idx2w[t] for t in pred]))
+                pred = ' '.join([tgt.idx2w[t] for t in pred])
+                gt = ' '.join([tgt.idx2w[t.item()] for t in input_batches[:, 1]])
+                print("Ground Truth: {}".format(gt))
+                print("Prediction: {}".format(pred))
+                # print(bleu([pred], [gt], 2))
+                # print(' '.join([tgt.idx2w[t] for t in pred]))
+                # print(' '.join([tgt.idx2w[t.item()] for t in input_batches[:, 1]]))
+
             except Exception as e:
                 print(e)
 
