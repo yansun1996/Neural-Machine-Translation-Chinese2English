@@ -20,10 +20,9 @@ class configuration:
         self.loss_type = 'mask'
         self.dropout = 0.2
         self.iteration = 100000
-        self.save_iteration = 200
+        self.save_iteration = 1
 
-        # self.load_checkpoint = 0
-        self.load_checkpoint = '1_140'
+        self.load_checkpoint = 0
 
         self.SOS_idx = 0
         self.EOS_idx = 1
