@@ -1,9 +1,11 @@
 This is the folder for data files.
 
-However, the corpus files are too large to save in GitHub repository.
+The corpus files are available via these links:
 
-You could download them through these links:
+test.txt:
 
-https://drive.google.com/file/d/1eYMvz-WTh-JX1vjMHNQZxaUOe6LEeSYv/view?usp=sharing
+https://drive.google.com/file/d/13dx9oMRmIE7rOE8wBH-GNTCw2yM9DaX4/view?usp=sharing
 
-https://drive.google.com/file/d/14Wb5Yayt9rtO_D4fk1lzZVMAVTdhbn-n/view?usp=sharing
+train.txt:
+
+https://drive.google.com/file/d/1nqD20XbH1ZjP6YK4ANK-PDToNL2bPQ4I/view?usp=sharing
