@@ -119,7 +119,7 @@ class Seq2Seq(nn.Module):
         self.encoder = encoder
         self.decoder = decoder
 
-    def forward(self, src, src_len, tgt, tgt_len, teacher_forcing_ratio=0.5):
+    def forward(self, src, src_len, tgt, tgt_len, teacher_forcing_ratio=cfg.teacher_forcing_ratio):
         batch_size = src.size(1)
         max_len = tgt.size(0)
         vocab_size = self.decoder.dim_output
