@@ -164,21 +164,21 @@ class Seq2Seq(nn.Module):
 
 def load_checkpoint(net, cfg):
     # load from required checkpoint
-    if isinstance(cfg.load_checkpoint, str):
-        net.load_state_dict(
-            torch.load(os.path.join(cfg.checkpoints_path, 'checkpoint_step_' + cfg.load_checkpoint + '.pth.tar')))
-        print('load checkpoint ' + str(cfg.load_checkpoint))
-    elif cfg.load_checkpoint == 0:
+    if cfg.load_checkpoint == 0:
         print('train from scratch')
+    elif cfg.load_checkpoint > 0:
+        net.load_state_dict(
+            torch.load(os.path.join(cfg.checkpoints_path, 'checkpoint_step_' + str(cfg.load_checkpoint) + '.pth.tar')))
+        print('load checkpoint ' + str(cfg.load_checkpoint))
     else:
-        raise ValueError('load_checkpoint should be equals to 0 or in format of numepoch_numiteration')
+        raise ValueError('load_checkpoint should be larger or equals to 0')
 
     return net
 
 
-def save_checkpoint(net, cfg, step, batch_index):
+def save_checkpoint(net, cfg, step):
 
     # save model
-    print('checkpoint '+str(step)+'_'+str(batch_index)+' saved')
+    print('checkpoint_'+str(step) + ' saved')
     torch.save(net.state_dict(), os.path.join(cfg.checkpoints_path,
-                                              'checkpoint_step_' + str(step)+'_'+str(batch_index) + '.pth.tar'))
+                                              'checkpoint_step_' + str(step) + '.pth.tar'))

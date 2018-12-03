@@ -5,7 +5,7 @@
 # software: PyCharm
 import unicodedata
 import re
-import random
+import math
 from cfg import *
 # import pytorch
 import torch
@@ -200,3 +200,100 @@ def random_batch(src, tgt, pairs, batch_size, batch_index):
         target_lens = Variable(torch.LongTensor(target_lens))
 
     return input_vars, input_lens, target_vars, target_lens
+
+
+def modified_precision(candidate, references, n):
+    count = 0
+    match_num = 0
+    len_c = len(candidate)
+
+    for i in range(len_c):
+        ref_temp = []
+        for reference in references:
+            for k in range(len(reference)):
+                ref_sentence = reference[k]
+                words_ref_sentence = ref_sentence.strip()
+                words_ref_sentence = words_ref_sentence.split()
+                num_max = len(words_ref_sentence) - n + 1
+                ngram_temp = {}
+                for j in range(num_max):
+                    ngram = ' '.join(words_ref_sentence[j:j + n])
+                    ngram = ngram.lower()
+                    if ngram in ngram_temp.keys():
+                        ngram_temp[ngram] += 1
+                    else:
+                        ngram_temp[ngram] = 1
+                ref_temp.append(ngram_temp)
+
+        cand_sentence = candidate[i]
+        words_cand = cand_sentence.strip()
+        words_cand = words_cand.split()
+        num_max_cand = len(words_cand) - n + 1
+        cand_temp = {}
+        for j in range(num_max_cand):
+            ngram = ' '.join(words_cand[j:j + n])
+            ngram = ngram.lower()
+            if ngram in cand_temp.keys():
+                cand_temp[ngram] += 1
+            else:
+                cand_temp[ngram] = 1
+        count += num_max_cand
+        match_num += match_counts(ref_temp, cand_temp)
+    if match_num != 0:
+        p = 1. * match_num / count
+    else:
+        p = 0
+    return p
+
+
+def match_counts(ref_counts, cand_temp):
+    num = 0
+    for ngram in cand_temp.keys():
+        count = cand_temp[ngram]
+        max_ref = 0
+        for ref in ref_counts:
+            if ngram in ref:
+                max_ref = max(max_ref, ref[ngram])
+        count = min(max_ref, count)
+        num = num + count
+    return num
+
+
+def brevity_penalty(candidate, references):
+    len_c = len(candidate)
+    r = 0
+    c = 0
+    for i in range(len_c):
+        ref_lens = []
+        for reference in references:
+            for k in range(len(reference)):
+                ref_sentence = reference[k]
+                words_ref_sentence = ref_sentence.strip()
+                words_ref_sentence = words_ref_sentence.split()
+                ref_lens.append(len(words_ref_sentence))
+        cand_sentence = candidate[i]
+        words_cand = cand_sentence.strip().split()
+        init_len_diff = abs(len(words_cand) - ref_lens[0])
+        best = ref_lens[0]
+        for num in ref_lens:
+            if (abs(len(words_cand) - num)) < init_len_diff:
+                init_len_diff = abs(len(words_cand) - num)
+                best = num
+        r = r + best
+        c = c + len(words_cand)
+    if c > r:
+        bp = 1
+    else:
+        bp = math.exp(1 - 1. * r / c)
+    return bp
+
+
+def bleu(candidate, references, n):
+    # n is the maximum length of each ngram you set
+    weight = 1. / n
+    temp = 0
+    for i in range(n):
+        p = modified_precision(candidate, references, i + 1)
+        temp += math.log(p) * weight
+    temp = math.exp(temp)
+    return brevity_penalty(candidate, references) * temp
