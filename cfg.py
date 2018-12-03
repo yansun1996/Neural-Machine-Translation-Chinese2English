@@ -13,12 +13,13 @@ class configuration:
         self.batch_size = 128
         self.hidden_size = 512
         self.embed_size = 256
-        self.lr = 0.001
-        self.n_layers_encoder = 3
-        self.n_layers_decoder = 3
-        self.grad_clip = 10
+        self.lr = 0.0001
+        self.n_layers_encoder = 2
+        self.n_layers_decoder = 2
+        self.grad_clip = 5
         self.loss_type = 'mask'
-        self.dropout = 0.2
+        self.dropout = 0.5
+        self.teacher_forcing_ratio = 0.5
         self.iteration = 100000
         self.save_iteration = 1
 
