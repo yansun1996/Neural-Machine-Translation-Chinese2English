@@ -74,9 +74,11 @@ def nmt_training(src, tgt, pairs, test_src, test_tgt, test_pairs):
                                     input_lengths[0].reshape(1))
 
             try:
-
+                # py code doesn't support chinese for now
+                # inp = ' '.join([src.idx2w[t] for t in input_batches[:,test_idx].cpu().numpy()])
                 pred = ' '.join([tgt.idx2w[t] for t in pred if t != PAD_idx])
-                gt = ' '.join([tgt.idx2w[t.item()] for t in target_batches[:, test_idx]])
+                gt = ' '.join([tgt.idx2w[t] for t in target_batches[:,test_idx].cpu().numpy() if t != PAD_idx])
+                # print("Input: {}".format(inp))
                 print("Ground Truth: {}".format(gt))
                 print("Prediction: {}".format(pred))
                 # print("BLEU Score: {}".format(bleu([pred], [[gt]], 4)))
