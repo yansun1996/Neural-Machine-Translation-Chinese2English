@@ -28,8 +28,6 @@ def nmt_training(src, tgt, pairs, test_src, test_tgt, test_pairs):
 
     total_loss = []
 
-    pairs.sort(key=lambda x: len(x[0].split()), reverse=True)
-
     for step in range(1, cfg.iteration-cfg.load_checkpoint):
         tmp_loss = 0
 
@@ -46,7 +44,7 @@ def nmt_training(src, tgt, pairs, test_src, test_tgt, test_pairs):
                 loss = masked_cross_entropy.compute_loss(
                     output.transpose(0, 1).contiguous(),
                     target_batches.transpose(0, 1).contiguous(),
-                    target_lengths
+                    target_lengths, ignore_index=cfg.PAD_idx
                 )
             else:
                 loss = F.nll_loss(output[1:].view(-1, tgt.num),
@@ -89,7 +87,7 @@ def nmt_training(src, tgt, pairs, test_src, test_tgt, test_pairs):
                 print(e)
 
         # print("Epoch {} finished".format(str(step)))
-        # random.shuffle(pairs)
+        random.shuffle(pairs)
 
 
 def nmt_testing(sec, tgt, pairs, test_src, test_tgt, test_pairs):
