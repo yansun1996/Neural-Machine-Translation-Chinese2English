@@ -9,12 +9,13 @@ from network import *
 
 from torch import optim
 from torch.nn.utils import clip_grad_norm_
+from random import randint
 
 # import loss func
 import masked_cross_entropy
 
 
-def nmt_training(src, tgt, pairs):
+def nmt_training(src, tgt, pairs, test_src, test_tgt, test_pairs):
     num_batch = len(pairs) // cfg.batch_size
 
     encoder_test = Encoder(src.num, cfg.embed_size, cfg.hidden_size, cfg.n_layers_encoder, dropout=cfg.dropout)
@@ -31,6 +32,8 @@ def nmt_training(src, tgt, pairs):
         tmp_loss = 0
 
         for batch_index in range(num_batch):
+
+
             input_batches, input_lengths, \
             target_batches, target_lengths = random_batch(src, tgt, pairs, cfg.batch_size, batch_index)
             opt.zero_grad()
@@ -41,7 +44,7 @@ def nmt_training(src, tgt, pairs):
                 loss = masked_cross_entropy.compute_loss(
                     output.transpose(0, 1).contiguous(),
                     target_batches.transpose(0, 1).contiguous(),
-                    target_lengths
+                    target_lengths, ignore_index=cfg.PAD_idx
                 )
             else:
                 loss = F.nll_loss(output[1:].view(-1, tgt.num),
@@ -57,23 +60,26 @@ def nmt_training(src, tgt, pairs):
             opt.step()
 
         if (step + cfg.load_checkpoint) % cfg.save_iteration == 0:
-
-            with open('./loss_log.txt', 'w') as outfile:
+            test_idx = randint(0, len(pairs))
+            with open('./loss_log_train.txt', 'w') as outfile:
                 for item in total_loss:
                     outfile.write("%s\n" % item)
 
             print("Epoch: {}, Loss: {}".format(step + cfg.load_checkpoint, tmp_loss/num_batch))
             save_checkpoint(net, cfg, step + cfg.load_checkpoint)
 
-            _, pred = net.inference(input_batches[:, 1].reshape(input_lengths[0].item(), 1),
+            _, pred = net.inference(input_batches[:, test_idx].reshape(input_lengths[0].item(), 1),
                                     input_lengths[0].reshape(1))
 
             try:
-                pred = ' '.join([tgt.idx2w[t] for t in pred])
-                gt = ' '.join([tgt.idx2w[t.item()] for t in input_batches[:, 1]])
+                # py code doesn't support chinese for now
+                # inp = ' '.join([src.idx2w[t] for t in input_batches[:,test_idx].cpu().numpy()])
+                pred = ' '.join([tgt.idx2w[t] for t in pred if t != PAD_idx])
+                gt = ' '.join([tgt.idx2w[t] for t in target_batches[:,test_idx].cpu().numpy() if t != PAD_idx])
+                # print("Input: {}".format(inp))
                 print("Ground Truth: {}".format(gt))
                 print("Prediction: {}".format(pred))
-                # print(bleu([pred], [gt], 2))
+                # print("BLEU Score: {}".format(bleu([pred], [[gt]], 4)))
                 # print(' '.join([tgt.idx2w[t] for t in pred]))
                 # print(' '.join([tgt.idx2w[t.item()] for t in input_batches[:, 1]]))
 
@@ -84,8 +90,7 @@ def nmt_training(src, tgt, pairs):
         random.shuffle(pairs)
 
 
-
-def nmt_testing(sec, tgt, pairs):
+def nmt_testing(sec, tgt, pairs, test_src, test_tgt, test_pairs):
     # TODO finish testing
     pass
 
@@ -97,8 +102,12 @@ if __name__ == '__main__':
     src.trim()
     tgt.trim()
 
+    test_src, test_tgt, test_pairs = prepareData('data/small_set/test.txt', 'english', 'chinese')
+    test_src.trim()
+    test_tgt.trim()
+
     if cfg.is_training:
-        nmt_training(src, tgt, pairs)
+        nmt_training(src, tgt, pairs, test_src, test_tgt, test_pairs)
     else:
-        nmt_testing(src, tgt, pairs)
+        nmt_testing(src, tgt, pairs, test_src, test_tgt, test_pairs)
 
