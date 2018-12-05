@@ -119,7 +119,7 @@ class Seq2Seq(nn.Module):
         self.encoder = encoder
         self.decoder = decoder
 
-    def forward(self, src, src_len, tgt, tgt_len, teacher_forcing_ratio=0.5):
+    def forward(self, src, src_len, tgt, tgt_len, teacher_forcing_ratio=cfg.teacher_forcing_ratio):
         batch_size = src.size(1)
         max_len = tgt.size(0)
         vocab_size = self.decoder.dim_output
@@ -164,12 +164,12 @@ class Seq2Seq(nn.Module):
 
 def load_checkpoint(net, cfg):
     # load from required checkpoint
-    if cfg.load_checkpoint > 0:
+    if cfg.load_checkpoint == 0:
+        print('train from scratch')
+    elif cfg.load_checkpoint > 0:
         net.load_state_dict(
             torch.load(os.path.join(cfg.checkpoints_path, 'checkpoint_step_' + str(cfg.load_checkpoint) + '.pth.tar')))
         print('load checkpoint ' + str(cfg.load_checkpoint))
-    elif cfg.load_checkpoint == 0:
-        print('train from scratch')
     else:
         raise ValueError('load_checkpoint should be larger or equals to 0')
 
@@ -177,7 +177,8 @@ def load_checkpoint(net, cfg):
 
 
 def save_checkpoint(net, cfg, step):
+
     # save model
-    print('checkpoint '+str(cfg.load_checkpoint + step)+' saved')
+    print('checkpoint_'+str(step) + ' saved')
     torch.save(net.state_dict(), os.path.join(cfg.checkpoints_path,
-                                              'checkpoint_step_' + str(cfg.load_checkpoint + step) + '.pth.tar'))
+                                              'checkpoint_step_' + str(step) + '.pth.tar'))
