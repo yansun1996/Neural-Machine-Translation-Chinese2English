@@ -16,7 +16,7 @@ def _sequence_mask(sequence_length, max_len=None):
     return seq_range_expand < seq_length_expand
 
 
-def compute_loss(logits, target, length):
+def compute_loss(logits, target, length, ignore_index):
     """
     Args:
         logits: A Variable containing a FloatTensor of size
@@ -30,7 +30,6 @@ def compute_loss(logits, target, length):
     Returns:
         loss: An average loss value masked by the length.
     """
-
     # logits_flat: (batch * max_len, num_classes)
     logits_flat = logits.view(-1, logits.size(-1))
     # log_probs_flat: (batch * max_len, num_classes)
@@ -39,6 +38,7 @@ def compute_loss(logits, target, length):
     target_flat = target.view(-1, 1)
     # losses_flat: (batch * max_len, 1)
     losses_flat = -torch.gather(log_probs_flat, dim=1, index=target_flat)
+    losses_flat[target_flat == ignore_index] = 0
     # losses: (batch, max_len)
     losses = losses_flat.view(*target.size())
     # mask: (batch, max_len)

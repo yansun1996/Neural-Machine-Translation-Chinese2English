@@ -8,31 +8,33 @@ class configuration:
     def __init__(self):
 
         self.is_training = True
-
-        self.batch_size = 2
-        self.hidden_size = 8
-        self.embed_size = 8
-        self.n_layers = 3
-        self.grad_clip = 10
-
-        self.PAD_idx = 0
-        self.SOS_idx = 0
-        self.EOS_idx = 2
-        self.UNK_idx = 3
         self.USE_CUDA = True
-        self.MIN_LENGTH = 5
-        self.MAX_LENGTH = 10
-        self.eng_prefixes = (
-                                "i am ", "i m ",
-                                "he is", "he s ",
-                                "she is", "she s",
-                                "you are", "you re ",
-                                "we are", "we re ",
-                                "they are", "they re "
-                            )
 
-        self.checkpoints_path = './checkpoints'
-        self.iteration = 100
-        self.save_iteration = 20
+        self.batch_size = 128
+        self.hidden_size = 512
+        self.embed_size = 256
+        self.lr = 0.0001
+        self.n_layers_encoder = 2
+        self.n_layers_decoder = 2
+        self.grad_clip = 5
+        self.loss_type = 'mask'
+        self.dropout = 0.5
+        self.teacher_forcing_ratio = 0.5
+        self.iteration = 100000
+        self.save_iteration = 1
+
         self.load_checkpoint = 0
+
+        self.SOS_idx = 0
+        self.EOS_idx = 1
+        self.UNK_idx = 2
+        self.PAD_idx = 3
+
+        self.MIN_LENGTH = 10
+        self.MAX_LENGTH = 50
+
+        self.checkpoints_path = './checkpoints_small_data'
+
+        self.data_path = 'data/small_set/train.txt'
+
 
