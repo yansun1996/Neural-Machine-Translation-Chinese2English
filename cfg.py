@@ -9,6 +9,7 @@ class configuration:
 
         self.is_training = True
         self.USE_CUDA = True
+        self.beam_search = True
 
         self.batch_size = 128
         self.hidden_size = 64
@@ -20,6 +21,7 @@ class configuration:
         self.loss_type = 'mask'
         self.dropout = 0.5
         self.teacher_forcing_ratio = 0.5
+        self.beam_widths = [1,2]
         self.iteration = 5
         self.save_iteration = 1
 
