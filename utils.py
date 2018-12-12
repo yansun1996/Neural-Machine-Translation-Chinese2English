@@ -57,7 +57,7 @@ class Preprocessor:
             self.idx2w[self.num] = word
             self.num += 1
 
-    def trim(self, min_count=5):
+    def trim(self, min_count=1):
         '''
         Trim to remove non-frequent word
         '''
@@ -294,6 +294,6 @@ def bleu(candidate, references, n):
     temp = 0
     for i in range(n):
         p = modified_precision(candidate, references, i + 1)
-        temp += math.log(p) * weight
+        temp += math.log(p) * weight if p != 0 else 0
     temp = math.exp(temp)
     return brevity_penalty(candidate, references) * temp
