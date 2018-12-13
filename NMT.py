@@ -88,12 +88,12 @@ def nmt_testing(src, tgt, pairs, test_src, test_tgt, test_pairs):
     encoder_test = Encoder(src.num, cfg.embed_size, cfg.hidden_size, cfg.n_layers_encoder, dropout=cfg.dropout)
     decoder_test = Decoder(cfg.embed_size, cfg.hidden_size, tgt.num, cfg.n_layers_decoder, dropout=cfg.dropout)
 
+
     net = Seq2Seq(encoder_test,decoder_test).cuda()
+    net = BeamSearch(net.encoder, net.decoder, cfg.beam_widths).cuda()
     net = load_checkpoint(net, cfg)
 
-    if cfg.beam_search:
-        net = BeamSearch(net.encoder, net.decoder, cfg.beam_widths).cuda()
-
+    # if don't want beam search, set beam width = 1
     for i in cfg.beam_widths:
         blue_score = []
         for index_sample in tqdm(range(len(test_pairs))):
