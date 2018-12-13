@@ -93,7 +93,7 @@ def nmt_testing(src, tgt, pairs, test_src, test_tgt, test_pairs):
     net = BeamSearch(net.encoder, net.decoder, cfg.beam_widths).cuda()
     net = load_checkpoint(net, cfg)
 
-    # if don't want beam search, set beam width = 1
+    # if don't want beam search, set beam width = [1]
     for i in cfg.beam_widths:
         blue_score = []
         for index_sample in tqdm(range(len(test_pairs))):
