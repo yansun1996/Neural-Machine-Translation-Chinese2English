@@ -57,7 +57,7 @@ class Preprocessor:
             self.idx2w[self.num] = word
             self.num += 1
 
-    def trim(self, min_count=5):
+    def trim(self, min_count=1):
         '''
         Trim to remove non-frequent word
         '''
@@ -294,6 +294,81 @@ def bleu(candidate, references, n):
     temp = 0
     for i in range(n):
         p = modified_precision(candidate, references, i + 1)
-        temp += math.log(p) * weight
+        temp += math.log(p) * weight if p != 0 else 0
     temp = math.exp(temp)
     return brevity_penalty(candidate, references) * temp
+
+
+class BeamSearch(nn.Module):
+    '''
+    Implement BeamSearch for testing
+    '''
+
+    def __init__(self, encoder, decoder, width):
+        super(BeamSearch, self).__init__()
+        self.encoder = encoder
+        self.decoder = decoder
+        self.width = width
+
+    def forward(self, src, src_len, width, max_len):
+        vocab_size = self.decoder.dim_output
+        encoder_output, hidden = self.encoder(src, src_len)
+        hidden = hidden[:self.decoder.num_layers]
+
+        if USE_CUDA:
+            # output is in the shape of batch_size * dict size
+            beam_best = Variable(torch.zeros(width, max_len)).cuda()
+            prob_best = Variable(torch.zeros(width)).cuda()
+            # beam options, all possible width * width options
+            beam_options = Variable(torch.zeros(width * width, max_len)).cuda()
+            prob_options = Variable(torch.zeros(width * width)).cuda()
+            output = Variable(src.data[0, :].cuda())
+            temp = Variable(src.data[0, :].cuda())
+        else:
+            beam_best = Variable(torch.zeros(width, max_len))
+            prob_best = Variable(torch.zeros(width))
+            beam_options = Variable(torch.zeros(width * width, max_len))
+            prob_options = Variable(torch.zeros(width * width))
+            temp = Variable(src.data[0, :])
+            output = Variable(src.data[0, :])
+
+        output, _, _ = self.decoder(
+            output, hidden, encoder_output)
+
+        # first round
+        # val: prob, idx: index
+        val, idx = output.data.topk(k=width, dim=1)
+
+        # generate beams
+        for i in range(width):
+            beam_best[i][1] = idx[0][i]
+            prob_best[i] = val[0][i].exp()  # since prob log,softmax from -10 to -12
+
+        for t in range(2, max_len):
+            cnt = 0
+            for i in range(width):
+                curr_prob = prob_best[i]
+                #
+                hidden = self.encoder(src, src_len)[1][:self.decoder.num_layers]
+
+                # feed the entire vector for the training process
+                for j in range(t):
+                    temp = beam_best[i][j].reshape(1).long()
+                    new_output, hidden, _ = self.decoder(
+                        temp, hidden, encoder_output)
+
+                val1, idx1 = new_output.data.topk(k=width, dim=1)
+
+                for j in range(width):
+                    beam_options[cnt] = beam_best[i]
+                    beam_options[cnt][t] = idx1[0][j]
+                    prob_options[cnt] = val1[0][j].exp() * curr_prob
+                    cnt += 1
+
+            topVal, topInx = prob_options.topk(k=width, dim=0)
+            for j in range(topInx.size(0)):
+                prob_best[j] = topVal[j]
+                beam_best[j] = beam_options[topInx[j]]
+
+        best_index = prob_best.max(0)[1]
+        return beam_options[best_index].cpu().numpy()
