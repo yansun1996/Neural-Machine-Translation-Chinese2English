@@ -4,15 +4,15 @@
 # datetime:11/24/2018 22:02
 # software: PyCharm
 
-import os
 from network import *
 
 from torch import optim
 from torch.nn.utils import clip_grad_norm_
 from random import randint
-
+from tqdm import tqdm
 # import loss func
 import masked_cross_entropy
+import numpy as np
 
 
 def nmt_training(src, tgt, pairs, test_src, test_tgt, test_pairs):
@@ -50,9 +50,7 @@ def nmt_training(src, tgt, pairs, test_src, test_tgt, test_pairs):
                 loss = F.nll_loss(output[1:].view(-1, tgt.num),
                                   target_batches[1:].contiguous().view(-1),
                                   ignore_index=cfg.PAD_idx)
-
             tmp_loss += loss.item()
-
             total_loss.append(loss.item())
 
             clip_grad_norm_(net.parameters(), cfg.grad_clip)
@@ -60,7 +58,7 @@ def nmt_training(src, tgt, pairs, test_src, test_tgt, test_pairs):
             opt.step()
 
         if (step + cfg.load_checkpoint) % cfg.save_iteration == 0:
-            test_idx = randint(0, len(pairs))
+            test_idx = randint(0, cfg.batch_size-1)
             with open('./loss_log_train.txt', 'w') as outfile:
                 for item in total_loss:
                     outfile.write("%s\n" % item)
@@ -72,17 +70,12 @@ def nmt_training(src, tgt, pairs, test_src, test_tgt, test_pairs):
                                     input_lengths[0].reshape(1))
 
             try:
-                # py code doesn't support chinese for now
-                # inp = ' '.join([src.idx2w[t] for t in input_batches[:,test_idx].cpu().numpy()])
+                inp = ' '.join([src.idx2w[t] for t in input_batches[:,test_idx].cpu().numpy() if t != PAD_idx])
                 pred = ' '.join([tgt.idx2w[t] for t in pred if t != PAD_idx])
                 gt = ' '.join([tgt.idx2w[t] for t in target_batches[:,test_idx].cpu().numpy() if t != PAD_idx])
-                # print("Input: {}".format(inp))
+                print("Input: {}".format(inp))
                 print("Ground Truth: {}".format(gt))
                 print("Prediction: {}".format(pred))
-                # print("BLEU Score: {}".format(bleu([pred], [[gt]], 4)))
-                # print(' '.join([tgt.idx2w[t] for t in pred]))
-                # print(' '.join([tgt.idx2w[t.item()] for t in input_batches[:, 1]]))
-
             except Exception as e:
                 print(e)
 
@@ -90,9 +83,41 @@ def nmt_training(src, tgt, pairs, test_src, test_tgt, test_pairs):
         random.shuffle(pairs)
 
 
-def nmt_testing(sec, tgt, pairs, test_src, test_tgt, test_pairs):
-    # TODO finish testing
-    pass
+def nmt_testing(src, tgt, pairs, test_src, test_tgt, test_pairs):
+
+    encoder_test = Encoder(src.num, cfg.embed_size, cfg.hidden_size, cfg.n_layers_encoder, dropout=cfg.dropout)
+    decoder_test = Decoder(cfg.embed_size, cfg.hidden_size, tgt.num, cfg.n_layers_decoder, dropout=cfg.dropout)
+
+
+    net = Seq2Seq(encoder_test,decoder_test).cuda()
+    net = BeamSearch(net.encoder, net.decoder, cfg.beam_widths).cuda()
+    net = load_checkpoint(net, cfg)
+
+    # if don't want beam search, set beam width = [1]
+    for i in cfg.beam_widths:
+        blue_score = []
+        for index_sample in tqdm(range(len(test_pairs))):
+            input_batches, input_lengths, \
+            target_batches, target_lengths = random_batch(test_src, test_tgt, test_pairs, 1, index_sample)
+
+            for test_idx in range(1):
+                pred = net(input_batches[:, test_idx].reshape(input_lengths[0].item(), 1), input_lengths[0].reshape(1),
+                           i, MAX_LENGTH)
+                inp = ' '.join([test_src.idx2w[t] for t in input_batches[:, test_idx].cpu().numpy()])
+                mt = ' '.join([test_tgt.idx2w[t] for t in pred if t != PAD_idx])
+                idx = mt.find('<eos>')
+                mt = mt[:idx + 5]
+                ref = ' '.join([test_tgt.idx2w[t] for t in target_batches[:, test_idx].cpu().numpy() if t != PAD_idx])
+                blue_score.append(bleu([mt], [[ref]], 4))
+
+            if index_sample % 100 == 0:
+                print(str(index_sample))
+        #         print('INPUT:\n' + inp)
+        #         print('REF:\n' + ref)
+        #         print('PREDICTION:\n' + mt)
+        #         print("------")
+        print(str(i) + " finished: " + str(np.mean(blue_score)))
+
 
 if __name__ == '__main__':
     if not os.path.exists(cfg.checkpoints_path):
