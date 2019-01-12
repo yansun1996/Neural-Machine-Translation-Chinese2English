@@ -1,5 +1,9 @@
 # LIGN167_Final_Project
 
+This repository is my branch for our team project.
+
+The original repository is [HERE](https://github.com/YuShen1116/LIGN167_Final_Project).
+
 ## 1. Project Topic
 * Neural Machine Translation by GRU.
 * Some advanced tricks (bidirection, teacher-forcing, attention and beam search) have been implemented.
