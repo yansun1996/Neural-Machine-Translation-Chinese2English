@@ -1,8 +1,10 @@
 # LIGN167_Final_Project
 
-This repository is my branch for our team project.
+NOTICE :exclamation::exclamation::exclamation:
 
-The original repository is [HERE](https://github.com/YuShen1116/LIGN167_Final_Project).
+:point_right: This repository is my branch for our team project.
+
+:point_right: The original repository is [HERE](https://github.com/YuShen1116/LIGN167_Final_Project).
 
 ## 1. Project Topic
 * Neural Machine Translation by GRU.
